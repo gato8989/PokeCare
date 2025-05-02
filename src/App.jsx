@@ -36,6 +36,7 @@ function App() {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="app">
+        <title>PokeCare</title>
         <header className="app-header">
           <h1>Guardería Pokémon</h1>
         </header>

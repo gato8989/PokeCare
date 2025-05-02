@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 
-const PokemonCard = ({ pokemon, index, onRemove, onMove }) => {
+const PokemonCard = ({ pokemon, index, onRemove, onMove, onClick }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'POKEMON',
     item: { index },
@@ -24,6 +24,7 @@ const PokemonCard = ({ pokemon, index, onRemove, onMove }) => {
     <div
       ref={(node) => drag(drop(node))}
       className={`pokemon-card ${isDragging ? 'dragging' : ''}`}
+      onClick={() => onClick(pokemon.id)}
     >
       <img 
         src={pokemon.sprites.front_default} 
@@ -31,7 +32,10 @@ const PokemonCard = ({ pokemon, index, onRemove, onMove }) => {
         className="pokemon-image"
       />
       <h3>{pokemon.name}</h3>
-      <button onClick={() => onRemove(pokemon.id)} className="remove-btn">
+      <button onClick={(e) => {
+        e.stopPropagation();
+        onRemove(pokemon.id);
+      }} className="remove-btn">
         Liberar
       </button>
     </div>

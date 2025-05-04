@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32">
+  <!-- Parte superior roja -->
+  <path d="M50 10 A40 40 0 0 1 90 50 H50 Z" fill="#E3350D" />
+  <!-- Parte inferior blanca -->
+  <path d="M50 90 A40 40 0 0 1 10 50 H50 Z" fill="white" />
+  <!-- Parte superior blanca -->
+  <path d="M50 10 A40 40 0 0 0 10 50 H50 Z" fill="white" />
+  <!-- Parte inferior roja -->
+  <path d="M50 90 A40 40 0 0 0 90 50 H50 Z" fill="#E3350D" />
+  <!-- Círculo central -->
+  <circle cx="50" cy="50" r="10" fill="white" stroke="#333" stroke-width="2" />
+  <!-- Círculo interior -->
+  <circle cx="50" cy="50" r="5" fill="#333" />
+</svg>

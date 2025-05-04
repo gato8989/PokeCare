@@ -1,0 +1,372 @@
+# Valores personalizados para Prometheus y Grafana
+
+# Configuración global
+global:
+  evaluation_interval: 1m
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+# Configuración del servidor Prometheus
+server:
+  enabled: true
+  persistentVolume:
+    enabled: true
+    size: 8Gi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+# Configuración de Alertmanager
+alertmanager:
+  enabled: true
+  persistentVolume:
+    enabled: true
+    size: 2Gi
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['job']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'slack'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'slack'
+    receivers:
+    - name: 'slack'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/REPLACE_WITH_YOUR_WEBHOOK'
+        channel: '#alerts'
+        send_resolved: true
+
+# Configuración de Grafana
+grafana:
+  enabled: true
+  adminPassword: "changeme"
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    limits:
+      cpu: 300m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+      kubernetes-pods:
+        gnetId: 6417
+        revision: 1
+        datasource: Prometheus
+      pokecare-frontend:
+        json: |
+          {
+            "annotations": {
+              "list": [
+                {
+                  "builtIn": 1,
+                  "datasource": "-- Grafana --",
+                  "enable": true,
+                  "hide": true,
+                  "iconColor": "rgba(0, 211, 255, 1)",
+                  "name": "Annotations & Alerts",
+                  "type": "dashboard"
+                }
+              ]
+            },
+            "editable": true,
+            "gnetId": null,
+            "graphTooltip": 0,
+            "id": 1,
+            "links": [],
+            "panels": [
+              {
+                "aliasColors": {},
+                "bars": false,
+                "dashLength": 10,
+                "dashes": false,
+                "datasource": "Prometheus",
+                "fill": 1,
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 0,
+                  "y": 0
+                },
+                "id": 2,
+                "legend": {
+                  "avg": false,
+                  "current": false,
+                  "max": false,
+                  "min": false,
+                  "show": true,
+                  "total": false,
+                  "values": false
+                },
+                "lines": true,
+                "linewidth": 1,
+                "links": [],
+                "nullPointMode": "null",
+                "percentage": false,
+                "pointradius": 5,
+                "points": false,
+                "renderer": "flot",
+                "seriesOverrides": [],
+                "spaceLength": 10,
+                "stack": false,
+                "steppedLine": false,
+                "targets": [
+                  {
+                    "expr": "sum(rate(http_requests_total{job=\"pokecare-frontend\"}[5m])) by (status_code)",
+                    "format": "time_series",
+                    "intervalFactor": 1,
+                    "legendFormat": "{{status_code}}",
+                    "refId": "A"
+                  }
+                ],
+                "thresholds": [],
+                "timeFrom": null,
+                "timeShift": null,
+                "title": "Solicitudes HTTP por código de estado",
+                "tooltip": {
+                  "shared": true,
+                  "sort": 0,
+                  "value_type": "individual"
+                },
+                "type": "graph",
+                "xaxis": {
+                  "buckets": null,
+                  "mode": "time",
+                  "name": null,
+                  "show": true,
+                  "values": []
+                },
+                "yaxes": [
+                  {
+                    "format": "short",
+                    "label": null,
+                    "logBase": 1,
+                    "max": null,
+                    "min": null,
+                    "show": true
+                  },
+                  {
+                    "format": "short",
+                    "label": null,
+                    "logBase": 1,
+                    "max": null,
+                    "min": null,
+                    "show": true
+                  }
+                ]
+              },
+              {
+                "aliasColors": {},
+                "bars": false,
+                "dashLength": 10,
+                "dashes": false,
+                "datasource": "Prometheus",
+                "fill": 1,
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 12,
+                  "y": 0
+                },
+                "id": 3,
+                "legend": {
+                  "avg": false,
+                  "current": false,
+                  "max": false,
+                  "min": false,
+                  "show": true,
+                  "total": false,
+                  "values": false
+                },
+                "lines": true,
+                "linewidth": 1,
+                "links": [],
+                "nullPointMode": "null",
+                "percentage": false,
+                "pointradius": 5,
+                "points": false,
+                "renderer": "flot",
+                "seriesOverrides": [],
+                "spaceLength": 10,
+                "stack": false,
+                "steppedLine": false,
+                "targets": [
+                  {
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"pokecare-frontend\"}[5m])) by (le))",
+                    "format": "time_series",
+                    "intervalFactor": 1,
+                    "legendFormat": "p95",
+                    "refId": "A"
+                  },
+                  {
+                    "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{job=\"pokecare-frontend\"}[5m])) by (le))",
+                    "format": "time_series",
+                    "intervalFactor": 1,
+                    "legendFormat": "p50",
+                    "refId": "B"
+                  }
+                ],
+                "thresholds": [],
+                "timeFrom": null,
+                "timeShift": null,
+                "title": "Latencia de solicitudes HTTP",
+                "tooltip": {
+                  "shared": true,
+                  "sort": 0,
+                  "value_type": "individual"
+                },
+                "type": "graph",
+                "xaxis": {
+                  "buckets": null,
+                  "mode": "time",
+                  "name": null,
+                  "show": true,
+                  "values": []
+                },
+                "yaxes": [
+                  {
+                    "format": "s",
+                    "label": null,
+                    "logBase": 1,
+                    "max": null,
+                    "min": null,
+                    "show": true
+                  },
+                  {
+                    "format": "short",
+                    "label": null,
+                    "logBase": 1,
+                    "max": null,
+                    "min": null,
+                    "show": true
+                  }
+                ]
+              }
+            ],
+            "refresh": "10s",
+            "schemaVersion": 16,
+            "style": "dark",
+            "tags": [],
+            "templating": {
+              "list": []
+            },
+            "time": {
+              "from": "now-6h",
+              "to": "now"
+            },
+            "timepicker": {
+              "refresh_intervals": [
+                "5s",
+                "10s",
+                "30s",
+                "1m",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "2h",
+                "1d"
+              ],
+              "time_options": [
+                "5m",
+                "15m",
+                "1h",
+                "6h",
+                "12h",
+                "24h",
+                "2d",
+                "7d",
+                "30d"
+              ]
+            },
+            "timezone": "",
+            "title": "PokeCare Frontend",
+            "uid": "pokecare-frontend",
+            "version": 1
+          }
+
+# Configuración de ServiceMonitor para PokeCare
+serviceMonitor:
+  enabled: true
+  selector:
+    matchLabels:
+      app: pokecare
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+
+# Configuración de PrometheusRules para alertas
+prometheusRules:
+  enabled: true
+  groups:
+    - name: pokecare.rules
+      rules:
+        - alert: HighErrorRate
+          expr: sum(rate(http_requests_total{job="pokecare-frontend",status_code=~"5.."}[5m])) / sum(rate(http_requests_total{job="pokecare-frontend"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Alta tasa de errores en el frontend"
+            description: "El frontend está experimentando una tasa de errores superior al 5% durante más de 5 minutos."
+        - alert: SlowResponseTime
+          expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="pokecare-frontend"}[5m])) by (le)) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tiempo de respuesta lento"
+            description: "El percentil 95 del tiempo de respuesta es superior a 2 segundos durante más de 5 minutos."
+        - alert: HighCPUUsage
+          expr: sum(rate(container_cpu_usage_seconds_total{container="pokecare-frontend"}[5m])) / sum(container_spec_cpu_quota{container="pokecare-frontend"} / 100000) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alto uso de CPU"
+            description: "El contenedor del frontend está utilizando más del 80% de su cuota de CPU durante más de 5 minutos."
+        - alert: HighMemoryUsage
+          expr: sum(container_memory_working_set_bytes{container="pokecare-frontend"}) / sum(container_spec_memory_limit_bytes{container="pokecare-frontend"}) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alto uso de memoria"
+            description: "El contenedor del frontend está utilizando más del 80% de su límite de memoria durante más de 5 minutos."

@@ -1,0 +1,51 @@
+.dark-mode {
+  color-scheme: dark;
+}
+
+.dark-bg {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+/* Estilos para componentes en modo oscuro */
+.dark-card {
+  background-color: #1e1e1e;
+  border-color: #333;
+  color: #e0e0e0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.dark-input {
+  background-color: #2d2d2d;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.dark-input::placeholder {
+  color: #999;
+}
+
+.dark-popup {
+  background-color: #1e1e1e;
+  border-color: #333;
+  color: #e0e0e0;
+}
+
+.dark-stats {
+  background-color: #2d2d2d;
+  border-color: #444;
+}
+
+/* Animaciones mejoradas para modo oscuro */
+.dark-float {
+  animation: darkFloat 3s ease-in-out infinite;
+}
+
+@keyframes darkFloat {
+  0%, 100% { transform: translateY(0); filter: brightness(1); }
+  50% { transform: translateY(-10px); filter: brightness(1.2); }
+}

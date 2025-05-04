@@ -1,0 +1,129 @@
+# Valores para el entorno de producción
+
+# Configuración global
+global:
+  environment: production
+  imageRegistry: acrpokecare.azurecr.io
+  imageTag: latest
+  imagePullSecrets: []
+
+# Configuración del frontend
+frontend:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# Configuración del API Gateway
+apiGateway:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+
+# Configuración del servicio de Pokémon
+pokemonService:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+
+# Configuración del servicio de Usuarios
+userService:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+
+# Configuración del servicio de Guardería
+daycareService:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+
+# Configuración de MongoDB
+mongodb:
+  auth:
+    # Las contraseñas deben ser reemplazadas por secretos en un entorno real
+    rootPassword: "${MONGODB_ROOT_PASSWORD}"
+    username: "pokecare"
+    password: "${MONGODB_PASSWORD}"
+    database: "pokecare"
+  persistence:
+    enabled: true
+    size: 20Gi
+  replicaCount: 3
+  architecture: replicaset
+
+# Configuración de Redis
+redis:
+  auth:
+    password: "${REDIS_PASSWORD}"
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+  replica:
+    replicaCount: 2
+    persistence:
+      enabled: true
+
+# Configuración de Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: pokecare.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: pokecare-frontend
+          port: 80
+        - path: /api
+          pathType: Prefix
+          service: pokecare-api-gateway
+          port: 80
+  tls:
+    - secretName: pokecare-tls
+      hosts:
+        - pokecare.example.com
+
+# Configuración de monitoreo
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  alerting:
+    enabled: true
+    slackWebhook: "${SLACK_WEBHOOK_URL}"

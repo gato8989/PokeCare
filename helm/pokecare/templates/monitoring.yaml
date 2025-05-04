@@ -1,0 +1,184 @@
+{{- if .Values.monitoring.enabled }}
+{{- if .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-rules
+  labels:
+    app: {{ .Release.Name }}
+    {{- include "pokecare.labels" . | nindent 4 }}
+spec:
+  groups:
+  - name: {{ .Release.Name }}.rules
+    rules:
+    - alert: PokeCareServiceDown
+      expr: up{app="{{ .Release.Name }}"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Servicio PokeCare caído"
+        description: "El servicio {{ "{{" }} $labels.component {{ "}}" }} ha estado caído por más de 1 minuto."
+    - alert: PokeCareHighCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{pod=~"{{ .Release.Name }}-.*"}[5m])) by (pod) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Alto uso de CPU"
+        description: "El pod {{ "{{" }} $labels.pod {{ "}}" }} tiene un uso de CPU superior al 80% durante más de 5 minutos."
+    - alert: PokeCareHighMemoryUsage
+      expr: sum(container_memory_usage_bytes{pod=~"{{ .Release.Name }}-.*"}) by (pod) / sum(container_spec_memory_limit_bytes{pod=~"{{ .Release.Name }}-.*"}) by (pod) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Alto uso de memoria"
+        description: "El pod {{ "{{" }} $labels.pod {{ "}}" }} tiene un uso de memoria superior al 80% durante más de 5 minutos."
+    - alert: PokeCareHighErrorRate
+      expr: sum(rate(http_requests_total{status=~"5..", app="{{ .Release.Name }}"}[5m])) / sum(rate(http_requests_total{app="{{ .Release.Name }}"}[5m])) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Alta tasa de errores"
+        description: "La tasa de errores HTTP 5xx es superior al 5% durante más de 2 minutos."
+{{- end }}
+
+{{- if .Values.monitoring.grafanaDashboards }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-grafana-dashboards
+  labels:
+    app: {{ .Release.Name }}
+    {{- include "pokecare.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  pokecare-overview.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": 1,
+      "links": [],
+      "panels": [
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": "Prometheus",
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "hiddenSeries": false,
+          "id": 2,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "nullPointMode": "null",
+          "options": {
+            "dataLinks": []
+          },
+          "percentage": false,
+          "pointradius": 2,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": false,
+          "steppedLine": false,
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{app=\"{{ .Release.Name }}\"}[5m])) by (component)",
+              "legendFormat": "{{ "{{" }} component {{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeFrom": null,
+          "timeRegions": [],
+          "timeShift": null,
+          "title": "Solicitudes HTTP por servicio",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "buckets": null,
+            "mode": "time",
+            "name": null,
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false,
+            "alignLevel": null
+          }
+        }
+      ],
+      "schemaVersion": 22,
+      "style": "dark",
+      "tags": [],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "PokeCare Overview",
+      "uid": "pokecare-overview",
+      "version": 1
+    }
+{{- end }}
+{{- end }}

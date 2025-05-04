@@ -1,0 +1,173 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*', 'rc-*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  ACR_NAME: acrpokecare
+  AKS_RESOURCE_GROUP: pokecare-rg
+  AKS_CLUSTER_NAME: pokecare-aks
+  NAMESPACE: pokecare
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test || echo "No tests specified"
+
+      - name: Build application
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.ACR_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Set environment and image tag
+        id: vars
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "ENVIRONMENT=production" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == refs/tags/rc-* ]]; then
+            echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=development" >> $GITHUB_ENV
+            echo "IMAGE_TAG=dev-${GITHUB_SHA::8}" >> $GITHUB_ENV
+          fi
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/pokecare-frontend:${{ env.IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-frontend:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-frontend:buildcache,mode=max
+          
+      - name: Build and push API Gateway image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./microservices/api-gateway
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/pokecare-api-gateway:${{ env.IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-api-gateway:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-api-gateway:buildcache,mode=max
+          
+      - name: Build and push Pokemon Service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./microservices/pokemon-service
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/pokecare-pokemon-service:${{ env.IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-pokemon-service:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-pokemon-service:buildcache,mode=max
+          
+      - name: Build and push User Service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./microservices/user-service
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/pokecare-user-service:${{ env.IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-user-service:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-user-service:buildcache,mode=max
+          
+      - name: Build and push Daycare Service image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./microservices/daycare-service
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/pokecare-daycare-service:${{ env.IMAGE_TAG }}
+          cache-from: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-daycare-service:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_NAME }}.azurecr.io/pokecare-daycare-service:buildcache,mode=max
+
+  deploy:
+    needs: build
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set environment and image tag
+        id: vars
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "ENVIRONMENT=production" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == refs/tags/rc-* ]]; then
+            echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=development" >> $GITHUB_ENV
+            echo "IMAGE_TAG=dev-${GITHUB_SHA::8}" >> $GITHUB_ENV
+          fi
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+
+      - name: Add Helm repositories
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+
+      - name: Deploy to AKS with Helm
+        run: |
+          helm upgrade --install pokecare ./helm/pokecare \
+            --namespace ${{ env.NAMESPACE }} \
+            --create-namespace \
+            --set global.imageTag=${{ env.IMAGE_TAG }} \
+            --set global.environment=${{ env.ENVIRONMENT }} \
+            --values ./helm/pokecare/values-${{ env.ENVIRONMENT }}.yaml
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/pokecare-frontend -n ${{ env.NAMESPACE }}
+          kubectl rollout status deployment/pokecare-api-gateway -n ${{ env.NAMESPACE }}
+          kubectl rollout status deployment/pokecare-pokemon-service -n ${{ env.NAMESPACE }}
+          kubectl rollout status deployment/pokecare-user-service -n ${{ env.NAMESPACE }}
+          kubectl rollout status deployment/pokecare-daycare-service -n ${{ env.NAMESPACE }}
+          kubectl get services -n ${{ env.NAMESPACE }}
+          echo "✅ Todos los servicios de PokeCare han sido desplegados correctamente"

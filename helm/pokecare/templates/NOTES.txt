@@ -1,0 +1,35 @@
+¡Gracias por instalar {{ .Chart.Name }}!
+
+La aplicación PokeCare ha sido desplegada en su clúster de Kubernetes.
+
+{{- if .Values.ingress.enabled }}
+Puede acceder a la aplicación a través de las siguientes URLs:
+
+{{- range .Values.ingress.hosts }}
+  {{- if .host }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+  {{- end }}
+{{- end }}
+
+{{- else }}
+Para acceder a la aplicación, ejecute los siguientes comandos:
+
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ .Release.Name }},component=frontend" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+Luego, visite http://localhost:8080 en su navegador.
+{{- end }}
+
+Para obtener más información sobre la aplicación, visite:
+https://github.com/yourusername/pokecare
+
+Estado de los servicios:
+
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ .Release.Name }}"
+
+Para ver los logs de un servicio específico:
+
+  kubectl logs --namespace {{ .Release.Namespace }} -l "app={{ .Release.Name }},component=<nombre-del-componente>"
+
+Componentes disponibles: frontend, api-gateway, pokemon-service, user-service, daycare-service

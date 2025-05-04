@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cosa
+        run: npm install react-dnd
+
       - name: Build project
         run: npm run build
 

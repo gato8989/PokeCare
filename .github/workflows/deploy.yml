@@ -20,7 +20,7 @@ jobs:
         run: npm ci
 
       - name: Cosa
-        run: npm install react-dnd
+        run: npm install react-dnd react-dnd-html5-backend
 
       - name: Build project
         run: npm run build

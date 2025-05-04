@@ -2,25 +2,30 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ] 
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Permiso para escribir en el repositorio
+      pages: write     # Permiso específico para GitHub Pages
+      id-token: write  # Necesario para autenticación OIDC
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Cosa
-        run: npm install react-dnd react-dnd-html5-backend axios
+        run: |
+          npm ci
+          npm install react-dnd react-dnd-html5-backend axios
 
       - name: Build project
         run: npm run build
@@ -30,4 +35,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          keep_files: false  
+          keep_files: false

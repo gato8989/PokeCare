@@ -25,14 +25,10 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm install react-dnd react-dnd-html5-backend axios
+          npm install react-dnd react-dnd-html5-backend axios gh-pages
 
       - name: Build project
         run: npm run build
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          keep_files: false
+        run: gh-pages -d dist

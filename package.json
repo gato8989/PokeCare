@@ -1,7 +1,7 @@
 {
   "name": "my-react-app",
-  "homepage": "https://gato8989.github.io/PokeCare/",
   "private": true,
+  "homepage": "https://gato8989.github.io/PokeCare/",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

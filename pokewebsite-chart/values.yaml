@@ -1,0 +1,8 @@
+image:
+  repository:  "isaki29/actividad"
+replicaCount: 1 
+service: 
+  port: 90
+  targetPort: 3200
+  type: NodePort
+  nodePort: 32000

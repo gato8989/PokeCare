@@ -31,7 +31,7 @@ const PokemonDaycare = ({ pokemons, onRemovePokemon, onMovePokemon, onAddPokemon
     <div className="daycare-container">
       <div className="daycare-header">
         <div className="header-top-row">
-          <h2>Guardería ({pokemons.length})</h2>
+          <h2>Guarderías: ({pokemons.length})</h2>
           <button 
             className="add-pokemon-btn"
             onClick={() => setShowPopup(true)}
